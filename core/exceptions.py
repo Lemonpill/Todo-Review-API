@@ -1,4 +1,3 @@
-from flask import json
 from werkzeug.exceptions import HTTPException
 from core.app import error_log
 

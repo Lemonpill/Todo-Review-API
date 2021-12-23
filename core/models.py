@@ -1,6 +1,5 @@
 from datetime import datetime
 from sqlalchemy.sql.expression import and_, or_
-from sqlalchemy.sql.functions import current_date
 from core.app import database as db
 from sqlalchemy_utils import aggregated
 from werkzeug.security import generate_password_hash
@@ -14,6 +13,7 @@ from sqlalchemy import (
     Float,
     func
 )
+
 
 ### MODELS ###
 class User(db.Model):
@@ -101,6 +101,9 @@ class User(db.Model):
         self.updated = datetime.now()
 
     def create_todo(self, data):
+        """
+        Create a new todo
+        """
         todo = Todo(
             user_id=self.id,
             title=data.title,
@@ -157,6 +160,18 @@ class User(db.Model):
         """
 
         return self.reviews.filter(Review.todo_id==todo.id).first()
+
+    def get_single_public_review(self, review_id):
+        """
+        Fetch user owned review if it belongs to a public todo
+        """
+
+        return self.reviews.join(
+            Review.todo, aliased=True
+        ).filter(
+            Review.id == review_id,
+            Todo.public == True
+        ).first()
 
     def delete_todos(self):
         """
@@ -256,15 +271,15 @@ class Todo(db.Model):
         ).first()
 
     @staticmethod
-    def create(user, title, public):
+    def create(user, data):
         """
         Create a new todo
         """
 
         todo = Todo(
             user_id=user.id,
-            title=title,
-            public=public,
+            title=data.title,
+            public=data.public,
             created=datetime.now()
         )
         db.session.add(todo)
@@ -288,7 +303,7 @@ class Todo(db.Model):
     @staticmethod
     def get_all_private(offset=0, limit=100):
         """
-        Fetch fall private todos
+        Fetch all private todos
         """
 
         return db.session.query(Todo).filter_by(public=False).offset(offset).limit(limit)
@@ -431,15 +446,15 @@ class Item(db.Model):
     updated = Column(DateTime, default=None)
 
     @staticmethod
-    def create(todo, content, completed):
+    def create(todo, data):
         """
         Create a new todo item
         """
         
         item = Item(
             todo_id=todo.id,
-            content=content,
-            completed=completed,
+            content=data.content,
+            completed=data.completed,
             created=datetime.now()
         )
         todo.items.append(item)
@@ -506,7 +521,7 @@ class Item(db.Model):
 
 
 class Review(db.Model):
-    """ ORM for 'item' table """
+    """ ORM for 'review' table """
 
     __tablename__ = "review"
     id = Column(Integer, primary_key=True)
@@ -539,7 +554,6 @@ class Review(db.Model):
     def get_all_public(offset, limit):
         """
         Fetch all reviews belonging to public todos
-        or todos that are owned by user
         """
 
         return Review.query.join(
@@ -552,6 +566,7 @@ class Review(db.Model):
     def get_all_public_or_by_user(user, offset, limit):
         """
         Fetch all reviews belonging to public todos
+        or todos that are owned by user
         """
 
         return Review.query.join(

@@ -149,7 +149,7 @@ class UpdateTodoSchema(BaseModel):
         min_length=TODO_TITLE_MINLEN,
         max_length=TODO_TITLE_MAXLEN
         )
-    private: bool = Field(...) # is required
+    public: bool = Field(...) # is required
 
 class CreateReviewSchema(BaseModel):
     """

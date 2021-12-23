@@ -1,18 +1,14 @@
-import re
 from flask import Blueprint, current_app, jsonify
-import jwt
 from datetime import datetime, timedelta
 from flask.wrappers import Response
-from sqlalchemy.sql.expression import desc
-from sqlalchemy.sql.functions import current_date
 from core.app import database as db
 from pydantic.error_wrappers import ValidationError
 from werkzeug.exceptions import BadRequest, Forbidden, NotFound, Unauthorized
 from werkzeug.security import check_password_hash
+import jwt
 from .models import (
     User,
     Todo,
-    Item,
     Review
 )
 from .schemas import (
@@ -23,9 +19,6 @@ from .schemas import (
     UpdateTodoSchema,
     UpdateItemSchema,
     UpdateReviewSchema,
-    PaginationSchema,
-    BearerSchema,
-    RefreshSchema,
     errors_to_response
 )
 from .decorators import (
@@ -51,6 +44,7 @@ def create_user(json_data):
     """
     Create a new user
     """
+
     try:
         parsed = CredentialsShema(**json_data)
     except ValidationError as e:
@@ -71,6 +65,7 @@ def create_bearer(json_data):
     """
     Generate bearer + refresh tokens
     """
+
     try:
         parsed = CredentialsShema(**json_data)
     except ValidationError:
@@ -112,6 +107,7 @@ def refresh_bearer(current_user):
     """
     Generates and returns a refreshed bearer
     """
+
     # generate bearer token
     bearer = jwt.encode(
         payload={
@@ -128,6 +124,10 @@ def refresh_bearer(current_user):
 @users.route("<username>", methods=["GET"])
 @bearer_required
 def get_user_info(current_user, username):
+    """
+    Fetch user info (only available to the user)
+    """
+
     try:
         assert current_user.username == username
     except:
@@ -138,6 +138,10 @@ def get_user_info(current_user, username):
 @json_required
 @bearer_required
 def update_user_info(current_user, json_data, username):
+    """
+    Update user info (only available to the user)
+    """
+
     try:
         assert current_user.username == username
     except:
@@ -157,6 +161,10 @@ def update_user_info(current_user, json_data, username):
 @users.route("<username>", methods=["DELETE"])
 @bearer_required
 def delete_user(current_user, username):
+    """
+    Delete user (only available to the user)
+    """
+
     try:
         assert current_user.username == username
     except:
@@ -169,6 +177,10 @@ def delete_user(current_user, username):
 @todos.route("best", methods=["GET"])
 @pagination_required
 def get_top_todos(offset, limit):
+    """
+    Get top X todos (specify limit in parameters)
+    """
+
     result = list()
     todos = Todo.best(offset, limit)
     for todo in todos:
@@ -179,6 +191,10 @@ def get_top_todos(offset, limit):
 @pagination_required
 @bearer_optional
 def get_all_todos(current_user, offset, limit):
+    """
+    Fetch all todos
+    """
+
     if current_user:
         todos = Todo.get_all_public_or_by_user(current_user, offset, limit)
     else:
@@ -191,6 +207,10 @@ def get_all_todos(current_user, offset, limit):
 @todos.route("<int:todo_id>", methods=["GET"])
 @bearer_optional
 def get_todo_info(current_user, todo_id):
+    """
+    Fetch specific todo info
+    """
+
     if current_user:
         todo = Todo.get_single_public_or_by_user(current_user, todo_id)
     else:
@@ -205,6 +225,10 @@ def get_todo_info(current_user, todo_id):
 @bearer_required
 @json_required
 def create_todo(json_data, current_user):
+    """
+    Create a new todo
+    """
+
     try:
         parsed = CreateTodoSchema(**json_data)
     except ValidationError as e:
@@ -217,13 +241,17 @@ def create_todo(json_data, current_user):
 @bearer_required
 @json_required
 def update_todo(json_data, current_user, todo_id):
+    """
+    Update an existing todo
+    """
+
     todo = current_user.get_todo_by_id(todo_id)
     try:
         assert todo
     except AssertionError:
         raise NotFound(description="todo not found")
     try:
-        parsed = CreateTodoSchema(**json_data)
+        parsed = UpdateTodoSchema(**json_data)
     except ValidationError as e:
         return errors_to_response(e.errors())
     todo.update(parsed)
@@ -233,6 +261,10 @@ def update_todo(json_data, current_user, todo_id):
 @todos.route("<int:todo_id>", methods=["DELETE"])
 @bearer_required
 def delete_todo(current_user, todo_id):
+    """
+    Delete an existing todo
+    """
+
     todo = current_user.get_todo_by_id(todo_id)
     try:
         assert todo
@@ -246,6 +278,10 @@ def delete_todo(current_user, todo_id):
 @pagination_required
 @bearer_optional
 def get_todo_items(current_user, offset, limit, todo_id):
+    """
+    Fetch todo items
+    """
+
     if current_user:
         todo = Todo.get_single_public_or_by_user(current_user, todo_id)
     else:
@@ -264,6 +300,10 @@ def get_todo_items(current_user, offset, limit, todo_id):
 @bearer_required
 @json_required
 def create_todo_item(json_data, current_user, todo_id):
+    """
+    Add an item to a todo list
+    """
+
     todo = current_user.get_todo_by_id(todo_id)
     try:
         assert todo
@@ -287,6 +327,7 @@ def get_item_info(current_user, todo_id, item_id):
     """
     Fetch todo item info
     """
+
     if current_user:
         todo = Todo.get_single_public_or_by_user(current_user, todo_id)
     else:
@@ -306,6 +347,10 @@ def get_item_info(current_user, todo_id, item_id):
 @bearer_required
 @json_required
 def update_item_info(json_data, current_user, todo_id, item_id):
+    """
+    Update a todo item
+    """
+
     todo = current_user.get_todo_by_id(todo_id)
     try:
         assert todo
@@ -317,7 +362,7 @@ def update_item_info(json_data, current_user, todo_id, item_id):
     except AssertionError:
         raise NotFound(description="item not found")
     try:
-        parsed = CreateItemSchema(**json_data)
+        parsed = UpdateItemSchema(**json_data)
     except ValidationError as e:
         return errors_to_response(e.errors())
     item.update(parsed)
@@ -327,6 +372,10 @@ def update_item_info(json_data, current_user, todo_id, item_id):
 @todos.route("<int:todo_id>/items/<int:item_id>", methods=["DELETE"])
 @bearer_required
 def delete_item(current_user, todo_id, item_id):
+    """
+    Delete todo item
+    """
+
     todo = current_user.get_todo_by_id(todo_id)
     try:
         assert todo
@@ -345,6 +394,10 @@ def delete_item(current_user, todo_id, item_id):
 @pagination_required
 @bearer_optional
 def get_todo_reviews(current_user, offset, limit, todo_id):
+    """
+    Fetch todo reviews
+    """
+
     if current_user:
         todo = Todo.get_single_public_or_by_user(current_user, todo_id)
     else:
@@ -353,7 +406,7 @@ def get_todo_reviews(current_user, offset, limit, todo_id):
         assert todo
     except AssertionError:
         raise NotFound(description="todo not found")
-    reviews = todo.reviews
+    reviews = todo.get_reviews(offset, limit)
     result = list()
     for review in reviews:
         result.append(review.get_info())
@@ -363,6 +416,10 @@ def get_todo_reviews(current_user, offset, limit, todo_id):
 @bearer_required
 @json_required
 def create_todo_review(json_data, current_user, todo_id):
+    """
+    Add todo review
+    """
+
     todo = Todo.get_by_id(todo_id)
     try:
         assert todo.public
@@ -389,6 +446,10 @@ def create_todo_review(json_data, current_user, todo_id):
 @pagination_required
 @bearer_optional
 def get_all_reviews(current_user, offset, limit):
+    """
+    Fetch all reviews
+    """
+
     if current_user:
         reviews = Review.get_all_public_or_by_user(current_user, offset, limit)
     else:
@@ -401,6 +462,10 @@ def get_all_reviews(current_user, offset, limit):
 @reviews.route("<int:review_id>", methods=["GET"])
 @bearer_optional
 def get_review_info(current_user, review_id):
+    """
+    Fetch review info
+    """
+
     if current_user:
         review = Review.get_single_public_or_by_user(review_id, current_user)
     else:
@@ -415,13 +480,17 @@ def get_review_info(current_user, review_id):
 @bearer_required
 @json_required
 def update_review_info(json_data, current_user, review_id):
-    review = current_user.get_review_by_id(review_id)
+    """
+    Update review info
+    """
+
+    review = current_user.get_single_public_review(review_id)
     try:
-        assert not review.todo.public
+        assert review
     except AssertionError:
-        raise Forbidden(description="could not complete request")
+        raise NotFound(description="review not found")
     try:
-        parsed = CreateReviewSchema(**json_data)
+        parsed = UpdateReviewSchema(**json_data)
     except ValidationError as e:
         return errors_to_response(e.errors())
     review.update(parsed)
@@ -431,11 +500,15 @@ def update_review_info(json_data, current_user, review_id):
 @reviews.route("<int:review_id>", methods=["DELETE"])
 @bearer_required
 def delete_review(current_user, review_id):
-    review = current_user.get_review_by_id(review_id)
+    """
+    Delete a review
+    """
+
+    review = current_user.get_single_public_review(review_id)
     try:
-        assert not review.todo.public
+        assert review
     except AssertionError:
-        raise Forbidden(description="could not complete request")
+        raise NotFound(description="review not found")
     review.delete()
     db.session.commit()
     return Response(status=200)
