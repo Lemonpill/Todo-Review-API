@@ -5,6 +5,7 @@ from jwt.exceptions import PyJWTError
 from pydantic.error_wrappers import ValidationError
 from werkzeug.exceptions import (
     BadRequest,
+    NotFound,
     Unauthorized
 )
 from .schemas import (

@@ -70,7 +70,7 @@ class ReviewStarsEnum(IntEnum):
 
 class CredentialsShema(BaseModel):
     """
-    Parsing and validating requests that include user credentials
+    Parse and validate credentials schema
     """
     username: str = Field(
         ..., # is required
@@ -87,7 +87,7 @@ class CredentialsShema(BaseModel):
 
 class BearerSchema(BaseModel):
     """
-    Parse requests involving Bearer
+    Parse and validate Bearer schema
     """
     Authorization: str = Field(
         ..., # is required
@@ -98,7 +98,7 @@ class BearerSchema(BaseModel):
 
 class RefreshSchema(BaseModel):
     """
-    Parse requests involving Refresh token
+    Parse and validate Refresh Token schema
     """
     Authorization: str = Field(
         ..., # is required
@@ -109,7 +109,7 @@ class RefreshSchema(BaseModel):
 
 class CreateItemSchema(BaseModel):
     """
-    Parse requests that create Todo items
+    Parse and validate Create Todo Item schema
     """
     content: str = Field(
         ..., # is required
@@ -120,7 +120,7 @@ class CreateItemSchema(BaseModel):
 
 class UpdateItemSchema(BaseModel):
     """
-    Parse requests that update Todo items
+    Parse and validate Update Todo Item schema
     """
     content: str = Field(
         ..., # is required
@@ -131,7 +131,7 @@ class UpdateItemSchema(BaseModel):
 
 class CreateTodoSchema(BaseModel):
     """
-    Parse requests that create Todos
+    Parse and validate Create Todo schema
     """
     title: str = Field(
         ..., # is required
@@ -142,7 +142,7 @@ class CreateTodoSchema(BaseModel):
 
 class UpdateTodoSchema(BaseModel):
     """
-    Parse requests that update Todos
+    Parse and validate Update Todo schema
     """
     title: str = Field(
         ..., # is required
@@ -153,7 +153,7 @@ class UpdateTodoSchema(BaseModel):
 
 class CreateReviewSchema(BaseModel):
     """
-    Parse requests that create Reviews
+    Parse and validate Create Review schema
     """
     stars: ReviewStarsEnum = Field(...) # is required
     title: str = Field(
@@ -169,7 +169,7 @@ class CreateReviewSchema(BaseModel):
 
 class UpdateReviewSchema(BaseModel):
     """
-    Parse requests that update Reviews
+    Parse and validate Update Review Schema
     """
     stars: ReviewStarsEnum = Field(...) # is required
     title: str = Field(
@@ -185,7 +185,7 @@ class UpdateReviewSchema(BaseModel):
 
 class PaginationSchema(BaseModel):
     """
-    Parse requests that require pagination
+    Parse and validate Pagination Required schema
     """
     offset: int = Field(
         ..., # is required

@@ -131,7 +131,7 @@ def get_user_info(current_user, username):
     try:
         assert current_user.username == username
     except:
-        raise Forbidden(description="could not authorize")
+        raise Unauthorized(description="could not authenticate")
     return current_user.get_info()
 
 @users.route("<username>", methods=["PATCH"])
@@ -141,7 +141,7 @@ def update_user_info(current_user, json_data, username):
     try:
         assert current_user.username == username
     except:
-        raise Forbidden(description="could not authorize")
+        raise Unauthorized(description="could not authenticate")
     try:
         parsed = CredentialsShema(**json_data)
     except ValidationError as e:
@@ -160,7 +160,7 @@ def delete_user(current_user, username):
     try:
         assert current_user.username == username
     except:
-        raise Forbidden(description="could not authorize")
+        raise Unauthorized(description="could not authenticate")
     current_user.delete()
     db.session.commit()
     return Response(status=200)
