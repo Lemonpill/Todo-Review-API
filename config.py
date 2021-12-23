@@ -7,14 +7,14 @@ class DevelopmentConfig(Config):
     SQLALCHEMY_ECHO = True
     SECRET_KEY = "REPLACE IT"
     SQLALCHEMY_DATABASE_URI = "sqlite:///dev.db"
-    DEFAULT_RATELIMIT = ["500/minute"]
+    DEFAULT_RATELIMIT = ["1000/minute"]
 
 class QAConfig(Config):
     DEBUG = True
     SQLALCHEMY_ECHO = True
     SECRET_KEY = "REPLACE IT"
     SQLALCHEMY_DATABASE_URI = "sqlite:///qa.db"
-    DEFAULT_RATELIMIT = ["1/minute"]
+    DEFAULT_RATELIMIT = ["2000/minute"]
 
 class ProductionConfig(Config):
     DEBUG = False
