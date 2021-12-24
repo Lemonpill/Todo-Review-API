@@ -184,7 +184,8 @@ def get_top_todos(offset, limit):
     result = list()
     todos = Todo.best(offset, limit)
     for todo in todos:
-        result.append(todo.get_info())
+        if todo.avg_stars:
+            result.append(todo.get_info())
     return jsonify(result)
 
 @todos.route("", methods=["GET"])
@@ -422,9 +423,9 @@ def create_todo_review(json_data, current_user, todo_id):
 
     todo = Todo.get_by_id(todo_id)
     try:
-        assert todo.public
+        assert todo and todo.public
     except AssertionError:
-        raise NotFound(description="todo must be public")
+        raise NotFound(description="todo not found")
     try:
         assert todo.owner != current_user
     except AssertionError:

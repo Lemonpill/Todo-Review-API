@@ -26,8 +26,8 @@ class User(db.Model):
     created = Column(DateTime, default=None)
     updated = Column(DateTime, default=None)
 
-    todos = db.relationship("Todo", backref="owner", lazy="dynamic")
-    reviews = db.relationship("Review", backref="owner", lazy="dynamic")
+    todos = db.relationship("Todo", backref="owner", lazy="dynamic", cascade="all, delete-orphan")
+    reviews = db.relationship("Review", backref="owner", lazy="dynamic", cascade="all, delete-orphan")
     
     @staticmethod
     def create(data):
@@ -208,10 +208,10 @@ class Todo(db.Model):
     created = Column(DateTime, default=None)
     updated = Column(DateTime, default=None)
 
-    items = db.relationship("Item", backref="todo", lazy="dynamic")
-    reviews = db.relationship("Review", backref="todo", lazy="dynamic")
+    items = db.relationship("Item", backref="todo", lazy="dynamic", cascade="all, delete-orphan")
+    reviews = db.relationship("Review", backref="todo", lazy="dynamic", cascade="all, delete-orphan")
 
-    @aggregated('reviews', Column(Float, default=0))
+    @aggregated('reviews', Column(Float, default=None))
     def avg_stars(self):
         """
         Returns average stars for the current instance
