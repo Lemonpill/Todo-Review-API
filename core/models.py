@@ -1,4 +1,5 @@
 from datetime import datetime
+from flask import current_app
 from sqlalchemy.sql.expression import and_, or_
 from core.app import database as db
 from sqlalchemy_utils import aggregated
@@ -26,8 +27,8 @@ class User(db.Model):
     created = Column(DateTime, default=None)
     updated = Column(DateTime, default=None)
 
-    todos = db.relationship("Todo", backref="owner", lazy="dynamic", cascade="all, delete-orphan")
-    reviews = db.relationship("Review", backref="owner", lazy="dynamic", cascade="all, delete-orphan")
+    todos = db.relationship("Todo", backref="owner", lazy="dynamic")
+    reviews = db.relationship("Review", backref="owner", lazy="dynamic")
     
     @staticmethod
     def create(data):
@@ -41,6 +42,7 @@ class User(db.Model):
             created=datetime.now()
         )
         db.session.add(user)
+        return user
     
     @staticmethod
     def get_all(offset=0, limit=100):
@@ -88,7 +90,8 @@ class User(db.Model):
             "id": self.id,
             "username": self.username,
             "created": self.created,
-            "updated": self.updated
+            "updated": self.updated,
+            "link": current_app.config["BASE_URL"] + "/users/" + self.username
         }
 
     def update(self, data):
@@ -111,6 +114,7 @@ class User(db.Model):
             created=datetime.now()
         )
         self.todos.append(todo)
+        return todo
 
     def get_todo_by_id(self, todo_id):
         """
@@ -202,14 +206,14 @@ class Todo(db.Model):
 
     __tablename__ = "todo"
     id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("user.id"))
+    user_id = Column(Integer, ForeignKey("user.id", ondelete="CASCADE"))
     title = Column(String(50))
     public = Column(Boolean, default=False)
     created = Column(DateTime, default=None)
     updated = Column(DateTime, default=None)
 
-    items = db.relationship("Item", backref="todo", lazy="dynamic", cascade="all, delete-orphan")
-    reviews = db.relationship("Review", backref="todo", lazy="dynamic", cascade="all, delete-orphan")
+    items = db.relationship("Item", backref="todo", lazy="dynamic")
+    reviews = db.relationship("Review", backref="todo", lazy="dynamic")
 
     @aggregated('reviews', Column(Float, default=None))
     def avg_stars(self):
@@ -225,8 +229,9 @@ class Todo(db.Model):
         Fetches the list of best todos sorted by rating desc
         """
         
-        todos = db.session.query(Todo).filter_by(
-            public=True
+        todos = db.session.query(Todo).filter(
+            Todo.public==True,
+            Todo.avg_stars!=None
         ).order_by(
             Todo.avg_stars.desc()
         ).offset(offset).limit(limit)
@@ -283,6 +288,7 @@ class Todo(db.Model):
             created=datetime.now()
         )
         db.session.add(todo)
+        return todo
     
     @staticmethod
     def get_all(offset=0, limit=100):
@@ -343,7 +349,8 @@ class Todo(db.Model):
             "created": self.created,
             "updated": self.updated,
             "avg_rating": self.avg_stars,
-            "votes": self.reviews.count()
+            "votes": self.reviews.count(),  # TODO: update votes count (too much time)
+            "link": current_app.config["BASE_URL"] + f"/todos/{self.id}"
         }
 
     def is_full(self):
@@ -389,12 +396,14 @@ class Todo(db.Model):
             created=datetime.now()
         )
         db.session.add(item)
+        return item
 
     def add_review(self, data, user):
         """
         Create a new todo review
         """
-        Review.create(self, user, data)
+        review = Review.create(self, user, data)
+        return review
 
     def get_reviews(self, offset=0, limit=100):
         """
@@ -439,7 +448,7 @@ class Item(db.Model):
 
     __tablename__ = "item"
     id = Column(Integer, primary_key=True)
-    todo_id = Column(Integer, ForeignKey("todo.id"))
+    todo_id = Column(Integer, ForeignKey("todo.id", ondelete="CASCADE"))
     content = Column(String(50))
     completed = Column(Boolean, default=False)
     created = Column(DateTime, default=None)
@@ -458,6 +467,7 @@ class Item(db.Model):
             created=datetime.now()
         )
         todo.items.append(item)
+        return item
     
     @staticmethod
     def get_all(offset=0, limit=100):
@@ -500,7 +510,8 @@ class Item(db.Model):
             "content": self.content,
             "completed": self.completed,
             "created": self.created,
-            "updated": self.updated
+            "updated": self.updated,
+            "link": current_app.config["BASE_URL"] + f"/todos/{self.todo_id}/items/{self.id}"
         }
 
     def update(self, data):
@@ -525,8 +536,8 @@ class Review(db.Model):
 
     __tablename__ = "review"
     id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("user.id"))
-    todo_id = Column(Integer, ForeignKey("todo.id"))
+    user_id = Column(Integer, ForeignKey("user.id", ondelete="CASCADE"))
+    todo_id = Column(Integer, ForeignKey("todo.id", ondelete="CASCADE"))
     title = Column(String(50))
     content = Column(String(5000))
     stars = Column(Integer)
@@ -640,6 +651,7 @@ class Review(db.Model):
         )
         todo.reviews.append(review)
         user.reviews.append(review)
+        return review
 
     def get_info(self):
         """
@@ -654,7 +666,8 @@ class Review(db.Model):
             "content": self.content,
             "stars": self.stars,
             "created": self.created,
-            "updated": self.updated
+            "updated": self.updated,
+            "link": current_app.config["BASE_URL"] + f"/reviews/{self.id}"
         }
 
     def update(self, data):

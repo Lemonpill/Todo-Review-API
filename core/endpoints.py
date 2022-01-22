@@ -1,3 +1,5 @@
+import json
+from os import remove
 from flask import Blueprint, current_app, jsonify
 from datetime import datetime, timedelta
 from flask.wrappers import Response
@@ -29,6 +31,8 @@ from .decorators import (
     refresh_required
 )
 
+# TODO: Delete user todo items on user delete
+
 
 ### BLUEPRINTS ###
 auth = Blueprint(name='auth', import_name=__name__)
@@ -54,9 +58,9 @@ def create_user(json_data):
         assert not user_exists
     except AssertionError:
         raise BadRequest(description="username exists")
-    User.create(parsed)
+    new_user = User.create(parsed)
     db.session.commit()
-    return Response(status=201)
+    return jsonify(new_user.get_info()), 201
     
 
 @auth.route("token", methods=["POST"])
@@ -100,7 +104,6 @@ def create_bearer(json_data):
         "refresh": refresh
     }, 201
 
-@refresh_required
 @auth.route("refresh", methods=["POST"])
 @refresh_required
 def refresh_bearer(current_user):
@@ -184,8 +187,7 @@ def get_top_todos(offset, limit):
     result = list()
     todos = Todo.best(offset, limit)
     for todo in todos:
-        if todo.avg_stars:
-            result.append(todo.get_info())
+        result.append(todo.get_info())
     return jsonify(result)
 
 @todos.route("", methods=["GET"])
@@ -234,9 +236,9 @@ def create_todo(json_data, current_user):
         parsed = CreateTodoSchema(**json_data)
     except ValidationError as e:
         return errors_to_response(e.errors())
-    current_user.create_todo(parsed)
+    todo = current_user.create_todo(parsed)
     db.session.commit()
-    return Response(status=201)
+    return jsonify(todo.get_info()), 201
 
 @todos.route("<int:todo_id>", methods=["PATCH"])
 @bearer_required
@@ -318,9 +320,9 @@ def create_todo_item(json_data, current_user, todo_id):
         assert not todo.is_full()
     except AssertionError:
         raise BadRequest(description="todo can contain up to 100 items")
-    todo.add_item(parsed)
+    item = todo.add_item(parsed)
     db.session.commit()
-    return Response(status=201)
+    return jsonify(item.get_info()), 201
 
 @todos.route("<int:todo_id>/items/<int:item_id>", methods=["GET"])
 @bearer_optional
@@ -438,9 +440,9 @@ def create_todo_review(json_data, current_user, todo_id):
         parsed = CreateReviewSchema(**json_data)
     except ValidationError as e:
         return errors_to_response(e.errors())
-    todo.add_review(parsed, current_user)
+    review = todo.add_review(parsed, current_user)
     db.session.commit()
-    return Response(status=201)
+    return jsonify(review.get_info()), 201
 
 
 @reviews.route("", methods=["GET"])
